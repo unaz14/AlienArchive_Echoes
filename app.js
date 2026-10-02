@@ -346,7 +346,7 @@ function addOptimisticResponse(
 
   saveWallCache();
 
-  renderWallFilters();
+  // renderWallFilters();
   renderWall();
 }
 
@@ -477,7 +477,7 @@ async function loadWall({
 
     saveWallCache();
 
-    renderWallFilters();
+    // renderWallFilters();
     renderWall();
 
   } catch (error) {
@@ -497,62 +497,62 @@ async function loadWall({
 // FILTERS
 // --------------------------------------------------
 
-function renderWallFilters() {
-  if (!wallFiltersEl) {
-    return;
-  }
+// function renderWallFilters() {
+//   if (!wallFiltersEl) {
+//     return;
+//   }
 
-  const filters = [
-    {
-      id: "all",
-      label: "All",
-    },
+//   const filters = [
+//     {
+//       id: "all",
+//       label: "All",
+//     },
 
-    ...QUESTIONS.map(
-      (question) => ({
-        id: question.id,
-        label: question.short,
-      })
-    ),
-  ];
+//     ...QUESTIONS.map(
+//       (question) => ({
+//         id: question.id,
+//         label: question.short,
+//       })
+//     ),
+//   ];
 
-  wallFiltersEl.innerHTML = "";
+//   wallFiltersEl.innerHTML = "";
 
-  filters.forEach((filter) => {
-    const button =
-      document.createElement(
-        "button"
-      );
+//   filters.forEach((filter) => {
+//     const button =
+//       document.createElement(
+//         "button"
+//       );
 
-    button.type = "button";
+//     button.type = "button";
 
-    button.className =
-      "filter-btn";
+//     button.className =
+//       "filter-btn";
 
-    button.classList.toggle(
-      "is-active",
-      activeFilter === filter.id
-    );
+//     button.classList.toggle(
+//       "is-active",
+//       activeFilter === filter.id
+//     );
 
-    button.textContent =
-      filter.label;
+//     button.textContent =
+//       filter.label;
 
-    button.addEventListener(
-      "click",
-      () => {
-        activeFilter =
-          filter.id;
+//     button.addEventListener(
+//       "click",
+//       () => {
+//         activeFilter =
+//           filter.id;
 
-        renderWallFilters();
-        renderWall();
-      }
-    );
+//         // renderWallFilters();
+//         renderWall();
+//       }
+//     );
 
-    wallFiltersEl.appendChild(
-      button
-    );
-  });
-}
+//     wallFiltersEl.appendChild(
+//       button
+//     );
+//   });
+// }
 
 
 // --------------------------------------------------
@@ -560,131 +560,154 @@ function renderWallFilters() {
 // --------------------------------------------------
 
 function renderWall() {
-  const notes = [];
-
-  publicResponses.forEach(
-    (response) => {
-
-      QUESTIONS.forEach(
-        (question) => {
-
-          if (
-            activeFilter !== "all" &&
-            activeFilter !==
-              question.id
-          ) {
-            return;
-          }
-
-          const answer =
-            response.answers?.[
-              question.id
-            ];
-
-          if (!answer?.value) {
-            return;
-          }
-
-          notes.push({
-            question,
-            answer,
-
-            author:
-              response.displayName ||
-              "Anonymous",
-
-            createdAt:
-              response.createdAt ||
-              "",
-          });
-        }
-      );
-    }
-  );
-
-
-  if (!notes.length) {
+  if (!publicResponses.length) {
     wallEl.innerHTML =
       '<p class="empty-wall">No notes here yet. Yours can be the first.</p>';
 
     return;
   }
 
-
   wallEl.innerHTML = "";
 
+  publicResponses.forEach((response, index) => {
+    const note =
+      document.createElement("article");
 
-  notes.forEach(
-    (item, index) => {
-
-      const note =
-        document.createElement(
-          "article"
-        );
-
-      note.className =
-        "wall-note sticky-note";
+    note.className =
+      "wall-note sticky-note";
 
 
-      // Slight rotation to keep the
-      // handmade sticky-note feeling
-      const tilt =
-        ((index * 7) % 9) - 4;
+    // Slight handmade rotation
+    const tilt =
+      ((index * 7) % 9) - 4;
 
-      note.style.setProperty(
-        "--note-tilt",
-        `${tilt * 0.35}deg`
+    note.style.setProperty(
+      "--note-tilt",
+      `${tilt * 0.35}deg`
+    );
+
+
+    // Name
+    const name =
+      document.createElement("h3");
+
+    name.className =
+      "wall-note-name";
+
+    name.textContent =
+      response.answers?.name?.value ||
+      response.displayName ||
+      "Anonymous";
+
+    note.appendChild(name);
+
+
+    // Origin
+    const originValue =
+      response.answers?.origin?.value;
+
+    if (originValue) {
+      const origin =
+        document.createElement("p");
+
+      origin.className =
+        "wall-note-origin";
+
+      origin.textContent =
+        originValue;
+
+      note.appendChild(origin);
+    }
+
+
+    // Recipe
+    const recipeValue =
+      response.answers?.recipe?.value;
+
+    if (recipeValue) {
+      const recipe =
+        document.createElement("div");
+
+      recipe.className =
+        "wall-note-section";
+
+      const recipeLabel =
+        document.createElement("div");
+
+      recipeLabel.className =
+        "wall-note-label";
+
+      recipeLabel.textContent =
+        "Recipe";
+
+      const recipeText =
+        document.createElement("p");
+
+      recipeText.className =
+        "wall-note-text";
+
+      recipeText.textContent =
+        recipeValue;
+
+      recipe.appendChild(
+        recipeLabel
       );
 
-
-      const questionLabel =
-        document.createElement(
-          "div"
-        );
-
-      questionLabel.className =
-        "note-question";
-
-      questionLabel.textContent =
-        item.question.short;
+      recipe.appendChild(
+        recipeText
+      );
 
       note.appendChild(
-        questionLabel
+        recipe
+      );
+    }
+
+
+    // Thoughts / inspiration
+    const inspirationValue =
+      response.answers?.inspiration?.value;
+
+    if (inspirationValue) {
+      const thoughts =
+        document.createElement("div");
+
+      thoughts.className =
+        "wall-note-section";
+
+      const thoughtsLabel =
+        document.createElement("div");
+
+      thoughtsLabel.className =
+        "wall-note-label";
+
+      thoughtsLabel.textContent =
+        "Thoughts";
+
+      const thoughtsText =
+        document.createElement("p");
+
+      thoughtsText.className =
+        "wall-note-text";
+
+      thoughtsText.textContent =
+        inspirationValue;
+
+      thoughts.appendChild(
+        thoughtsLabel
       );
 
+      thoughts.appendChild(
+        thoughtsText
+      );
 
-      // Text only
-      const text =
-        document.createElement(
-          "div"
-        );
-
-      text.className =
-        "note-text";
-
-      text.textContent =
-        item.answer.value;
-
-      note.appendChild(text);
-
-
-      const author =
-        document.createElement(
-          "div"
-        );
-
-      author.className =
-        "note-author";
-
-      author.textContent =
-        `— ${item.author}`;
-
-      note.appendChild(author);
-
-
-      wallEl.appendChild(note);
+      note.appendChild(
+        thoughts
+      );
     }
-  );
+
+
+    wallEl.appendChild(note);
+  });
 }
 
 
@@ -726,7 +749,7 @@ if (
   if (cached.length) {
     publicResponses = cached;
 
-    renderWallFilters();
+    // renderWallFilters();
     renderWall();
 
     // quietly refresh in background
