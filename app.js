@@ -264,8 +264,14 @@ async function submitResponses() {
     localStorage.setItem("dumplingWallSubmitted", "true");
     statusEl.textContent = "Pinned! Your notes are now part of the wall.";
     wallSection.hidden = false;
-    await loadWall();
-    wallSection.scrollIntoView({ behavior: "smooth", block: "start" });
+
+    wallSection.scrollIntoView({
+      behavior: "smooth",
+      block: "start"
+    });
+
+    // 不阻塞用户
+    loadWall();
   } catch (error) {
     console.error(error);
     statusEl.textContent = "Something went wrong while saving. Check your Apps Script URL and deployment settings.";
