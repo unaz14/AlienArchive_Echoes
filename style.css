@@ -201,6 +201,12 @@ h1 {
   color: #fff;
 } */
 
+.text-btn {
+  border: 0;
+  cursor: pointer;
+  background: transparent;
+}
+
 .answer-panel {
   margin-top: 14px;
 }
@@ -269,13 +275,13 @@ h1 {
 } */
 
 /* .clear-btn, */
-/* .text-btn {
+.text-btn {
   padding: 8px 0;
   text-decoration: underline;
   text-underline-offset: 4px;
   font-size: .84rem;
   font-weight: 700;
-} */
+}
 
 .submit-area {
   padding: 18px 0 58px;
