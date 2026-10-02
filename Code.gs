@@ -1,188 +1,508 @@
-/**
- * Google Apps Script backend for the Dumpling Notes static site.
- *
- * SETUP
- * 1. Create a Google Sheet.
- * 2. Copy its ID from the URL and paste below.
- * 3. Create a Google Drive folder for submitted drawings.
- * 4. Copy the folder ID and paste below.
- * 5. Deploy this script as a Web App:
- *    - Execute as: Me
- *    - Who has access: Anyone
- * 6. Copy the /exec URL into app.js.
- */
+// --------------------------------------------------
+// CONFIG
+// --------------------------------------------------
 
-const SPREADSHEET_ID = '1tjJmJ5XV6PynI1i6dLkfoN23lzy8080dN0u_g78Q7b0';
-const DRIVE_FOLDER_ID = '1l3amZ1G81A6UHyH2QvYGSLydRrD3GKLO';
-const SHEET_NAME = 'Responses';
-const MAX_PUBLIC_RESPONSES = 120;
+const SPREADSHEET_ID =
+  "PASTE_YOUR_SPREADSHEET_ID_HERE";
 
-const QUESTION_IDS = ['name', 'origin', 'recipe', 'inspiration'];
+const SHEET_NAME = "Responses";
+
 const HEADERS = [
-  'timestamp',
-  'submissionId',
-  'nameType', 'nameValue',
-  'originType', 'originValue',
-  'recipeType', 'recipeValue',
-  'inspirationType', 'inspirationValue'
+  "timestamp",
+  "submissionId",
+  "nameType",
+  "nameValue",
+  "originType",
+  "originValue",
+  "recipeType",
+  "recipeValue",
+  "inspirationType",
+  "inspirationValue"
 ];
+
+
+// --------------------------------------------------
+// GET
+// --------------------------------------------------
 
 function doGet(e) {
   try {
-    const action = (e && e.parameter && e.parameter.action) || 'list';
 
-    if (action === 'list') {
-      return json_({ ok: true, responses: getPublicResponses_() });
+    const action =
+      e?.parameter?.action ||
+      "list";
+
+
+    if (action === "list") {
+
+      // Try cache first
+      const cache =
+        CacheService.getScriptCache();
+
+      const cached =
+        cache.get(
+          "publicResponses"
+        );
+
+
+      if (cached) {
+
+        return json_({
+          ok: true,
+          responses:
+            JSON.parse(cached)
+        });
+
+      }
+
+
+      const responses =
+        getPublicResponses_();
+
+
+      // Cache responses for 30 seconds
+      cache.put(
+        "publicResponses",
+        JSON.stringify(responses),
+        30
+      );
+
+
+      return json_({
+        ok: true,
+        responses
+      });
+
     }
 
-    return json_({ ok: false, error: 'Unknown action.' });
+
+    return json_({
+      ok: false,
+      error: "Unknown action."
+    });
+
+
   } catch (error) {
-    return json_({ ok: false, error: String(error && error.message ? error.message : error) });
+
+    return json_({
+      ok: false,
+      error:
+        String(
+          error?.message ||
+          error
+        )
+    });
+
   }
 }
+
+
+// --------------------------------------------------
+// POST
+// --------------------------------------------------
 
 function doPost(e) {
+
   try {
-    const payload = JSON.parse(e.postData.contents || '{}');
 
-    if (payload.action !== 'submit') {
-      return json_({ ok: false, error: 'Unknown action.' });
+    if (
+      !e ||
+      !e.postData ||
+      !e.postData.contents
+    ) {
+
+      throw new Error(
+        "No request data received."
+      );
+
     }
 
-    const result = saveSubmission_(payload.answers || {});
-    return json_({ ok: true, id: result.id, createdAt: result.createdAt });
+
+    const data =
+      JSON.parse(
+        e.postData.contents
+      );
+
+
+    if (
+      data.action !==
+      "submit"
+    ) {
+
+      throw new Error(
+        "Unknown action."
+      );
+
+    }
+
+
+    const answers =
+      data.answers || {};
+
+
+    const normalized = {
+
+      name:
+        normalizeAnswer_(
+          answers.name
+        ),
+
+      origin:
+        normalizeAnswer_(
+          answers.origin
+        ),
+
+      recipe:
+        normalizeAnswer_(
+          answers.recipe
+        ),
+
+      inspiration:
+        normalizeAnswer_(
+          answers.inspiration
+        )
+
+    };
+
+
+    // Make sure everything
+    // is text only
+    Object.keys(
+      normalized
+    ).forEach((key) => {
+
+      normalized[key].type =
+        "text";
+
+    });
+
+
+    const sheet =
+      getSheet_();
+
+
+    const submissionId =
+      Utilities.getUuid();
+
+    const createdAt =
+      new Date();
+
+
+    sheet.appendRow([
+
+      createdAt,
+
+      submissionId,
+
+      "text",
+      normalized.name.value,
+
+      "text",
+      normalized.origin.value,
+
+      "text",
+      normalized.recipe.value,
+
+      "text",
+      normalized.inspiration.value
+
+    ]);
+
+
+    // Clear cached wall so
+    // next visitor gets latest data
+    CacheService
+      .getScriptCache()
+      .remove(
+        "publicResponses"
+      );
+
+
+    return json_({
+
+      ok: true,
+
+      id:
+        submissionId,
+
+      createdAt:
+        createdAt.toISOString()
+
+    });
+
+
   } catch (error) {
-    return json_({ ok: false, error: String(error && error.message ? error.message : error) });
+
+    return json_({
+
+      ok: false,
+
+      error:
+        String(
+          error?.message ||
+          error
+        )
+
+    });
+
   }
+
 }
 
-function saveSubmission_(answers) {
-  const sheet = getSheet_();
-  const submissionId = Utilities.getUuid();
-  const createdAt = new Date();
 
-  const normalized = {};
+// --------------------------------------------------
+// NORMALIZE ANSWERS
+// --------------------------------------------------
 
-  QUESTION_IDS.forEach(function(questionId) {
-    const answer = answers[questionId] || {};
-    const type = answer.type === 'draw' ? 'draw' : 'text';
-    let value = String(answer.value || '').trim();
+function normalizeAnswer_(
+  answer
+) {
 
-    if (!value) {
-      throw new Error('All four questions are required.');
-    }
-
-    if (type === 'draw') {
-      value = saveDrawing_(value, submissionId, questionId);
-    } else {
-      value = sanitizeText_(value, questionId);
-    }
-
-    normalized[questionId] = { type: type, value: value };
-  });
-
-  sheet.appendRow([
-    createdAt,
-    submissionId,
-    normalized.name.type, normalized.name.value,
-    normalized.origin.type, normalized.origin.value,
-    normalized.recipe.type, normalized.recipe.value,
-    normalized.inspiration.type, normalized.inspiration.value
-  ]);
-
-  return { id: submissionId, createdAt: createdAt.toISOString() };
-}
-
-function getPublicResponses_() {
-  const sheet = getSheet_();
-  const lastRow = sheet.getLastRow();
-  if (lastRow < 2) return [];
-
-  const startRow = Math.max(2, lastRow - MAX_PUBLIC_RESPONSES + 1);
-  const rowCount = lastRow - startRow + 1;
-  const rows = sheet.getRange(startRow, 1, rowCount, HEADERS.length).getValues();
-
-  return rows.reverse().map(function(row) {
-    const name = { type: String(row[2] || ''), value: String(row[3] || '') };
-    const origin = { type: String(row[4] || ''), value: String(row[5] || '') };
-    const recipe = { type: String(row[6] || ''), value: String(row[7] || '') };
-    const inspiration = { type: String(row[8] || ''), value: String(row[9] || '') };
+  if (!answer) {
 
     return {
-      id: String(row[1] || ''),
-      createdAt: row[0] instanceof Date ? row[0].toISOString() : String(row[0] || ''),
-      displayName: name.type === 'text' ? name.value : 'A visitor',
-      answers: {
-        name: name,
-        origin: origin,
-        recipe: recipe,
-        inspiration: inspiration
-      }
+      type: "text",
+      value: ""
     };
-  });
-}
 
-function saveDrawing_(dataUrl, submissionId, questionId) {
-  if (dataUrl.indexOf('data:image/png;base64,') !== 0) {
-    throw new Error('Invalid drawing data.');
   }
 
-  const base64 = dataUrl.split(',')[1];
-  const bytes = Utilities.base64Decode(base64);
 
-  // Rough safety limit: ~2 MB decoded image.
-  if (bytes.length > 2 * 1024 * 1024) {
-    throw new Error('Drawing is too large. Please simplify it and try again.');
+  // Current app.js format
+  if (
+    typeof answer ===
+    "object"
+  ) {
+
+    return {
+
+      type: "text",
+
+      value:
+        String(
+          answer.value ||
+          ""
+        ).trim()
+
+    };
+
   }
 
-  const folder = DriveApp.getFolderById(DRIVE_FOLDER_ID);
-  const blob = Utilities.newBlob(bytes, 'image/png', submissionId + '-' + questionId + '.png');
-  const file = folder.createFile(blob);
 
-  // Required if the public GitHub Pages site should be able to display the image.
-  // Some Google Workspace organizations disable this sharing mode.
-  file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+  // Also supports simple
+  // string values
+  return {
 
-  return 'https://drive.google.com/uc?export=view&id=' + file.getId();
-}
+    type: "text",
 
-function sanitizeText_(value, questionId) {
-  const limits = {
-    name: 120,
-    origin: 500,
-    recipe: 1600,
-    inspiration: 1200
+    value:
+      String(answer).trim()
+
   };
 
-  const limit = limits[questionId] || 1200;
-  return value.slice(0, limit);
 }
+
+
+// --------------------------------------------------
+// GET PUBLIC RESPONSES
+// --------------------------------------------------
+
+function getPublicResponses_() {
+
+  const sheet =
+    getSheet_();
+
+  const lastRow =
+    sheet.getLastRow();
+
+
+  if (lastRow < 2) {
+
+    return [];
+
+  }
+
+
+  // Only load latest
+  // 120 submissions
+  const maxRows = 120;
+
+  const rowCount =
+    Math.min(
+      lastRow - 1,
+      maxRows
+    );
+
+  const startRow =
+    lastRow -
+    rowCount +
+    1;
+
+
+  const rows =
+    sheet
+      .getRange(
+        startRow,
+        1,
+        rowCount,
+        HEADERS.length
+      )
+      .getValues();
+
+
+  // newest first
+  rows.reverse();
+
+
+  return rows.map(
+    (row) => {
+
+      const [
+        timestamp,
+        submissionId,
+
+        nameType,
+        nameValue,
+
+        originType,
+        originValue,
+
+        recipeType,
+        recipeValue,
+
+        inspirationType,
+        inspirationValue
+
+      ] = row;
+
+
+      return {
+
+        id:
+          submissionId,
+
+        createdAt:
+          timestamp instanceof Date
+            ? timestamp.toISOString()
+            : timestamp,
+
+        displayName:
+          nameValue ||
+          "Anonymous",
+
+        answers: {
+
+          name: {
+            type: "text",
+            value:
+              nameValue || ""
+          },
+
+          origin: {
+            type: "text",
+            value:
+              originValue || ""
+          },
+
+          recipe: {
+            type: "text",
+            value:
+              recipeValue || ""
+          },
+
+          inspiration: {
+            type: "text",
+            value:
+              inspirationValue || ""
+          }
+
+        }
+
+      };
+
+    }
+  );
+
+}
+
+
+// --------------------------------------------------
+// SHEET
+// --------------------------------------------------
 
 function getSheet_() {
-  if (SPREADSHEET_ID.indexOf('PASTE_YOUR_') === 0) {
-    throw new Error('Set SPREADSHEET_ID in Code.gs first.');
-  }
-  if (DRIVE_FOLDER_ID.indexOf('PASTE_YOUR_') === 0) {
-    throw new Error('Set DRIVE_FOLDER_ID in Code.gs first.');
+
+  if (
+    !SPREADSHEET_ID ||
+    SPREADSHEET_ID.includes(
+      "PASTE_YOUR"
+    )
+  ) {
+
+    throw new Error(
+      "Set SPREADSHEET_ID in Code.gs first."
+    );
+
   }
 
-  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-  let sheet = ss.getSheetByName(SHEET_NAME);
+
+  const spreadsheet =
+    SpreadsheetApp
+      .openById(
+        SPREADSHEET_ID
+      );
+
+
+  let sheet =
+    spreadsheet
+      .getSheetByName(
+        SHEET_NAME
+      );
+
 
   if (!sheet) {
-    sheet = ss.insertSheet(SHEET_NAME);
+
+    sheet =
+      spreadsheet
+        .insertSheet(
+          SHEET_NAME
+        );
+
   }
 
-  if (sheet.getLastRow() === 0) {
-    sheet.appendRow(HEADERS);
-    sheet.setFrozenRows(1);
+
+  // Add header row
+  // if sheet is empty
+  if (
+    sheet.getLastRow() === 0
+  ) {
+
+    sheet.appendRow(
+      HEADERS
+    );
+
   }
+
 
   return sheet;
+
 }
 
+
+// --------------------------------------------------
+// JSON RESPONSE
+// --------------------------------------------------
+
 function json_(data) {
+
   return ContentService
-    .createTextOutput(JSON.stringify(data))
-    .setMimeType(ContentService.MimeType.JSON);
+    .createTextOutput(
+      JSON.stringify(data)
+    )
+    .setMimeType(
+      ContentService
+        .MimeType
+        .JSON
+    );
+
 }

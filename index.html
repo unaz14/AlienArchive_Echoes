@@ -1,5 +1,6 @@
 <!doctype html>
 <html lang="en">
+
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
@@ -7,6 +8,7 @@
   <title>Dumpling Notes</title>
   <link rel="stylesheet" href="style.css" />
 </head>
+
 <body>
   <main class="app-shell">
     <header class="hero">
@@ -47,7 +49,11 @@
       <h2 class="question-title"></h2>
       <p class="question-hint"></p>
 
-      <div class="mode-switch" role="tablist" aria-label="Answer mode">
+      <div class="text-panel">
+        <textarea class="answer-text"></textarea>
+      </div>
+
+      <!-- <div class="mode-switch" role="tablist" aria-label="Answer mode">
         <button class="mode-btn is-active" data-mode="text" type="button" role="tab" aria-selected="true">Text</button>
         <button class="mode-btn" data-mode="draw" type="button" role="tab" aria-selected="false">Draw</button>
       </div>
@@ -68,10 +74,11 @@
           </label>
           <button class="clear-btn" type="button">Clear</button>
         </div>
-      </div>
+      </div> -->
     </article>
   </template>
 
   <script src="app.js" defer></script>
 </body>
+
 </html>
