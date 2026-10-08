@@ -17,18 +17,21 @@ const CAROUSEL_SPEED = {
 // Add your archive image files here. The page will keep working if a file
 // is missing and will show a placeholder instead.
 const ARCHIVE_2026_IMAGES = [
-  "assets/2026/dumpling-01.svg",
-  "assets/2026/dumpling-02.svg",
-  "assets/2026/dumpling-03.svg",
-  "assets/2026/dumpling-04.svg",
+  // "assets/2026/dumpling-01.svg",
+  // "assets/2026/dumpling-02.svg",
+  // "assets/2026/dumpling-03.svg",
+  // "assets/2026/dumpling-04.svg",
 ];
 
 const ARCHIVE_2025_IMAGES = [
-  "assets/2025/dumpling-01.svg",
-  "assets/2025/dumpling-02.svg",
-  "assets/2025/dumpling-03.svg",
-  "assets/2025/dumpling-04.svg",
-  "assets/2025/dumpling-05.svg",
+  "assets/2025/dumpling25-01.svg",
+  "assets/2025/dumpling25-02.svg",
+  "assets/2025/dumpling25-03.svg",
+  "assets/2025/dumpling25-04.svg",
+  "assets/2025/dumpling25-05.svg",
+  "assets/2025/dumpling25-06.svg",
+  "assets/2025/dumpling25-07.svg",
+  "assets/2025/dumpling25-08.svg",
 ];
 
 // --------------------------------------------------
@@ -252,7 +255,8 @@ function runOrigamiIntroTransition() {
 
 function createImageCard(src, index, year) {
   const card = document.createElement("article");
-  card.className = "carousel-card image-card";
+  card.className = "carousel-card image-card image-note-card";
+  card.style.setProperty("--tilt", `${((index % 5) - 2) * 0.18}deg`);
   card.tabIndex = 0;
   card.setAttribute("role", "button");
   card.setAttribute("aria-label", `Open ${year} archive image ${index + 1}`);
@@ -261,6 +265,9 @@ function createImageCard(src, index, year) {
   card.dataset.year = String(year);
   card.dataset.index = String(index + 1);
 
+  const imageCanvas = document.createElement("div");
+  imageCanvas.className = "image-note-canvas";
+
   const img = document.createElement("img");
   img.src = src;
   img.alt = `Alien Archive dumpling from ${year}`;
@@ -268,14 +275,13 @@ function createImageCard(src, index, year) {
 
   const fallback = () => {
     img.remove();
-    const placeholder = document.createElement("div");
-    placeholder.className = "image-placeholder";
-    placeholder.textContent = `${year} image ${String(index + 1).padStart(2, "0")}`;
-    card.appendChild(placeholder);
+    imageCanvas.classList.add("is-placeholder");
+    imageCanvas.textContent = `${year} image ${String(index + 1).padStart(2, "0")}`;
   };
 
   img.addEventListener("error", fallback, { once: true });
-  card.appendChild(img);
+  imageCanvas.appendChild(img);
+  card.appendChild(imageCanvas);
   return card;
 }
 
