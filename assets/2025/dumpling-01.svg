@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="1100" viewBox="0 0 900 1100">
+<rect width="900" height="1100" fill="#ddd4c6"/>
+<path d="M0 0L900 1100M900 0L0 1100" stroke="#171512" stroke-opacity=".22" stroke-width="2"/>
+<rect x="46" y="46" width="808" height="1008" rx="10" fill="none" stroke="#171512" stroke-opacity=".35" stroke-width="2"/>
+<text x="450" y="530" text-anchor="middle" font-family="Arial, sans-serif" font-size="34" letter-spacing="5" fill="#171512">IMAGE PLACEHOLDER</text>
+<text x="450" y="582" text-anchor="middle" font-family="Arial, sans-serif" font-size="20" letter-spacing="4" fill="#171512" opacity=".65">2025 / 01</text>
+</svg>

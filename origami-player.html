@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Alien Archive Origami</title>
+<style>
+html,body{height:100%;margin:0;background:transparent;overflow:hidden}
+#app{position:relative;height:100%}
+canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+</style>
+</head>
+<body>
+<div id="app"><canvas id="c"></canvas></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+const qs=new URLSearchParams(location.search);
+const mode=qs.get('mode')||'preview';
+let transitionActive=mode==='transition';
+let startH=Math.max(1,Number(qs.get('startH'))||0);
+const canvas=document.getElementById('c');
+const renderer=new THREE.WebGLRenderer({canvas,antialias:true,alpha:true});
+renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+const scene=new THREE.Scene();
+const FOV=35;
+const camera=new THREE.PerspectiveCamera(FOV,1,1,60);
+const root=new THREE.Group();scene.add(root);
+scene.add(new THREE.AmbientLight(0xffffff,.6));
+const L1=new THREE.DirectionalLight(0xffffff,.5);L1.position.set(.4,.6,1);scene.add(L1);
+const L2=new THREE.DirectionalLight(0xffffff,.55);L2.position.set(-.4,-.6,-1);scene.add(L2);
+
+const PAPER='#f3efe6';
+const COL={corner:PAPER,mid:PAPER,flap:PAPER,dia:PAPER};
+const PI=Math.PI;
+const DEF=[
+ {t:[1,-1], c:[1,[-1.5,1.5]],  m:[5,[-.5,1.5]],  f:{n:9, v:[[-2,1],[0,1],[-1,0],[-2,0]],  h:[-1,1],  ax:'x',sg:1}},
+ {t:[-1,-1],c:[2,[1.5,1.5]],   m:[6,[1.5,.5]],   f:{n:10,v:[[0,2],[1,2],[1,0],[0,1]],     h:[1,1],   ax:'y',sg:-1}},
+ {t:[-1,1], c:[3,[1.5,-1.5]],  m:[7,[.5,-1.5]],  f:{n:11,v:[[1,0],[2,0],[2,-1],[0,-1]],   h:[1,-1],  ax:'x',sg:-1}},
+ {t:[1,1],  c:[4,[-1.5,-1.5]], m:[8,[-1.5,-.5]], f:{n:12,v:[[-1,0],[0,-1],[0,-2],[-1,-2]],h:[-1,-1], ax:'y',sg:1}}
+];
+const sq=(c)=>[[c[0]-.5,c[1]-.5],[c[0]+.5,c[1]-.5],[c[0]+.5,c[1]+.5],[c[0]-.5,c[1]+.5]];
+let _ct=null;
+function cornerTex(){
+  if(_ct)return _ct;
+  const cv=document.createElement('canvas');cv.width=cv.height=1024;
+  const g=cv.getContext('2d');
+  g.fillStyle=PAPER;g.fillRect(0,0,1024,1024);
+  g.lineJoin='round';g.lineWidth=10;g.strokeStyle='rgba(20,30,60,.22)';
+  [[0,0],[512,0],[0,512],[512,512]].forEach(p=>g.strokeRect(p[0],p[1],512,512));
+  g.fillStyle='#14213a';g.textAlign='center';g.textBaseline='middle';
+  g.font='700 215px "Courier New",Courier,monospace';
+  g.fillText('Alien',512,385);
+  g.fillText('Archive',512,640);
+  _ct=new THREE.CanvasTexture(cv);_ct.anisotropy=8;
+  return _ct;
+}
+const pieces=[];
+function makePiece(label,type,verts,color,layer,gi,flap){
+  const xs=verts.map(v=>v[0]),ys=verts.map(v=>v[1]);
+  const minx=Math.min(...xs),maxx=Math.max(...xs),miny=Math.min(...ys),maxy=Math.max(...ys);
+  const bw=maxx-minx,bh=maxy-miny;
+  const cv=document.createElement('canvas');cv.width=Math.round(256*bw);cv.height=Math.round(256*bh);
+  const g=cv.getContext('2d');
+  const P=v=>[(v[0]-minx)/bw*cv.width,(1-(v[1]-miny)/bh)*cv.height];
+  g.fillStyle=color;g.fillRect(0,0,cv.width,cv.height);
+  g.beginPath();verts.forEach((v,i)=>{const p=P(v);i?g.lineTo(p[0],p[1]):g.moveTo(p[0],p[1])});g.closePath();
+  g.lineJoin='round';g.lineWidth=5;g.strokeStyle='rgba(20,30,60,.22)';g.stroke();
+  const isC=type==='corner';
+  const tex=isC?cornerTex():new THREE.CanvasTexture(cv);tex.anisotropy=8;
+  const geo=new THREE.BufferGeometry();
+  geo.setAttribute('position',new THREE.BufferAttribute(new Float32Array(12),3));
+  const uv=new Float32Array(8);
+  verts.forEach((v,i)=>{
+    if(isC){const t=DEF[gi].t;uv[i*2]=(v[0]+t[0]+1)/2;uv[i*2+1]=(v[1]+t[1]+1)/2}
+    else{uv[i*2]=(v[0]-minx)/bw;uv[i*2+1]=(v[1]-miny)/bh}
+  });
+  geo.setAttribute('uv',new THREE.BufferAttribute(uv,2));
+  geo.setIndex([0,1,2,0,2,3]);
+  const mk=(map,side)=>new THREE.MeshLambertMaterial({map,side,polygonOffset:true,polygonOffsetFactor:0,polygonOffsetUnits:0});
+  const mat=mk(tex,isC?THREE.FrontSide:THREE.DoubleSide);const mats=[mat];
+  const mesh=new THREE.Mesh(geo,mat);mesh.frustumCulled=false;root.add(mesh);
+  if(isC){const plain=mk(new THREE.CanvasTexture(cv),THREE.BackSide);mats.push(plain);const m2=new THREE.Mesh(geo,plain);m2.frustumCulled=false;root.add(m2);}
+  pieces.push({verts,type,layer,gi,flap,geo,mat,mats});
+}
+DEF.forEach((d,i)=>{makePiece(String(d.c[0]),'corner',sq(d.c[1]),COL.corner,4,i);makePiece(String(d.m[0]),'mid',sq(d.m[1]),COL.mid,3,i);makePiece(String(d.f.n),'flap',d.f.v,COL.flap,2+(3-i)*.1,i,d.f);});
+makePiece('13','dia',[[0,1],[1,0],[0,-1],[-1,0]],COL.dia,1,-1);
+
+function rigid(p,pc,q,f){
+  const d=DEF[pc.gi];const bx=d.t[0]*f,by=d.t[1]*f;
+  if(pc.type!=='flap')return[p[0]+bx,p[1]+by,0];
+  const h=pc.flap.h,rx=p[0]-h[0],ry=p[1]-h[1],th=pc.flap.sg*PI*q,c=Math.cos(th),s=Math.sin(th);
+  return pc.flap.ax==='x'?[h[0]+bx+rx,h[1]+by+ry*c,ry*s]:[h[0]+bx+rx*c,h[1]+by+ry,-rx*s];
+}
+function setLayers(front){pieces.forEach(pc=>{pc.mats.forEach(m=>{m.polygonOffsetUnits=-(front?pc.layer:5-pc.layer)*200})});}
+setLayers(true);
+const clamp=(x,a=0,b=1)=>Math.min(b,Math.max(a,x));
+const ease=t=>t<.5?4*t*t*t:1-Math.pow(-2*t+2,3)/2;
+const key=p=>p[0]+','+p[1];
+function setU(u){
+  const q=1-ease(u);const f=(1-Math.cos(PI*q))/2;const acc=new Map();
+  pieces.forEach(pc=>{if(pc.type==='dia')return;pc.verts.forEach(v=>{const r=rigid(v,pc,q,f),k=key(v),a=acc.get(k)||{x:0,y:0,z:0,n:0};a.x+=r[0];a.y+=r[1];a.z+=r[2];a.n++;acc.set(k,a);});});
+  pieces.forEach(pc=>{const pos=pc.geo.attributes.position;pc.verts.forEach((v,i)=>{const a=acc.get(key(v));pos.setXYZ(i,a.x/a.n,a.y/a.n,a.z/a.n)});pos.needsUpdate=true;pc.geo.computeVertexNormals();});
+}
+root.rotation.set(0,0,0);
+let u=0,dir=0;
+const DUR=3.35;
+function transitionScale(){
+  if(!transitionActive) return 1;
+  const t=ease(u);
+  const desktop=window.parent.innerWidth>700;
+  // Desktop ends only slightly wider than the viewport; mobile keeps its existing feel.
+  return desktop ? (1 + 0.08*t) : (1.08 + 0.72*t);
+}
+function resize(){
+  const w=canvas.clientWidth,h=canvas.clientHeight;
+  renderer.setSize(w,h,false);
+  camera.aspect=w/h;
+  camera.updateProjectionMatrix();
+
+  const tanHalf=Math.tan(THREE.MathUtils.degToRad(FOV/2));
+  const parentWidth = window.parent.innerWidth || window.innerWidth;
+  // Give the folded preview a little more breathing room on desktop so its
+  // outer edges never get clipped by the iframe/canvas boundary. Mobile stays unchanged.
+  const previewNeed = parentWidth>700 ? 1.32 : 1.17;
+  let need = (!transitionActive && parentWidth>700) ? 1.32 : 1.17;
+  const desktop=transitionActive && parentWidth>700 && startH>0;
+
+  if(desktop){
+    // At u=0 this exactly matches the Intro preview framing. As the outer box
+    // grows, compensate for that resize, then gradually hand the zoom to the unfold.
+    const progress=ease(u);
+    const holdNeed=previewNeed*(h/startH);
+    need=THREE.MathUtils.lerp(holdNeed,1.17,progress);
+  }
+
+  const previewY = parentWidth>700 ? -0.20 : -0.35;
+  let targetY = (!transitionActive && parentWidth>700) ? previewY : -0.35;
+  if(desktop){
+    targetY = THREE.MathUtils.lerp(previewY,-0.35,ease(u));
+  }
+
+  camera.position.set(0,targetY,Math.max(need/tanHalf,need/(tanHalf*camera.aspect)));
+  camera.lookAt(0,targetY,0);
+
+  const sc=transitionScale();
+  root.scale.set(sc,sc,sc);
+}
+addEventListener('resize',resize);resize();
+window.addEventListener('message',(event)=>{
+  const data=event.data||{};
+  if(data.type!=='alien-archive-origami-start') return;
+  transitionActive=true;
+  startH=Math.max(1,Number(data.startH)||canvas.clientHeight||1);
+  u=0; dir=0; setU(0); resize();
+  requestAnimationFrame(()=>requestAnimationFrame(()=>{dir=1;}));
+});
+if(mode==='transition'){setTimeout(()=>{dir=1;},180);}
+let last=performance.now();
+function tick(now){
+  const dt=Math.min(.05,(now-last)/1000);last=now;
+  if(dir!==0){u=clamp(u+dir*dt/DUR);if(u>=1){u=1;dir=0;}setU(u);resize();}
+  renderer.render(scene,camera);requestAnimationFrame(tick);
+}
+setU(0);requestAnimationFrame(tick);
+</script>
+</body>
+</html>
