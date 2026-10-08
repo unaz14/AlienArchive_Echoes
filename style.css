@@ -25,9 +25,28 @@ body {
   min-height: 100%;
 }
 
+#introPage,
+#homePage,
+#addPage {
+  overflow-y: auto;
+  overflow-x: hidden;
+
+  scrollbar-width: none;
+  /* Firefox */
+  -ms-overflow-style: none;
+  /* old Edge / IE */
+}
+
+#introPage::-webkit-scrollbar,
+#homePage::-webkit-scrollbar,
+#addPage::-webkit-scrollbar {
+  display: none;
+  /* Chrome / Safari */
+}
+
 html {
   background: var(--paper);
-  scrollbar-gutter: stable;
+  /* scrollbar-gutter: stable; */
 }
 
 body {
@@ -60,6 +79,11 @@ button {
 
 .page {
   opacity: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+
+  scrollbar-width: none;
+  -ms-overflow-style: none;
   transition: opacity .72s cubic-bezier(.22, .61, .36, 1);
 }
 
@@ -69,6 +93,10 @@ button {
 
 .page.is-leaving {
   opacity: 0;
+}
+
+.page::-webkit-scrollbar {
+  display: none;
 }
 
 /* INTRO */
@@ -424,7 +452,7 @@ h1 {
 }
 
 .archive-shared-card.text-card.is-expanded {
-  padding: clamp(20px, 2.4vw, 32px);
+  /* padding: clamp(20px, 2.4vw, 32px);
   padding-bottom: clamp(50px, 5vw, 64px);
 
   overflow-y: auto;
@@ -432,24 +460,60 @@ h1 {
   align-items: flex-start;
 
   overscroll-behavior: contain;
-  -webkit-overflow-scrolling: touch;
+  -webkit-overflow-scrolling: touch; */
+
+  position: relative;
+
+  overflow: hidden;
+  /* 整张 note 不滚 */
+
+  padding-bottom: 58px;
 
   scrollbar-width: thin;
 }
 
-/* .archive-shared-card.text-card.is-expanded p {
-  font-size: clamp(1.15rem, 2vw, 1.6rem);
-  line-height: 1.42;
-} */
+.archive-shared-card.text-card.is-expanded p {
+  /* font-size: clamp(1.15rem, 2vw, 1.6rem);
+  line-height: 1.42; */
+
+  width: 100%;
+  height: 100%;
+
+  overflow-y: auto;
+  overflow-x: hidden;
+
+  padding-right: 6px;
+
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+
+  /* hide scrollbar */
+  scrollbar-width: none;
+  /* Firefox */
+  -ms-overflow-style: none;
+  /* old Edge / IE */
+}
 
 .archive-shared-card.text-card.is-expanded time {
+  /* right: 20px;
+  bottom: 18px;
+  font-size: .72rem; */
+  position: absolute;
+
   right: 20px;
   bottom: 18px;
-  font-size: .72rem;
+
+  margin: 0;
+
+  font-size: .65rem;
+  opacity: .52;
+
+  z-index: 3;
 }
 
 .archive-shared-card.text-card.is-expanded::-webkit-scrollbar {
-  width: 5px;
+  /* width: 5px; */
+  display: none;
 }
 
 .archive-shared-card.text-card.is-expanded::-webkit-scrollbar-thumb {
@@ -867,4 +931,20 @@ h1 {
 
 * {
   font-family: "Courier New", Courier, monospace !important;
+}
+
+html,
+body {
+  overflow-x: hidden;
+  overflow-y: auto;
+
+  scrollbar-width: none;      /* Firefox */
+  -ms-overflow-style: none;   /* old Edge */
+}
+
+html::-webkit-scrollbar,
+body::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
 }
