@@ -862,9 +862,18 @@ h1 {
   }
 
   .carousel-card {
-    width: min(68vw, 280px);
-    height: min(82vw, 340px);
+    width: min(58vw, 240px);
+    height: min(70vw, 290px);
   }
+
+  .text-card p {
+    font-size: .82rem;
+    line-height: 1.32;
+  }
+
+  .archive-sections {
+  gap: 5px;
+}
 
   .add-page {
     min-height: 100svh;
