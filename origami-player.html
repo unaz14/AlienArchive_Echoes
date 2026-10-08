@@ -121,8 +121,8 @@ function resize(){
   const parentWidth = window.parent.innerWidth || window.innerWidth;
   // Give the folded preview a little more breathing room on desktop so its
   // outer edges never get clipped by the iframe/canvas boundary. Mobile stays unchanged.
-  const previewNeed = parentWidth>700 ? 1.32 : 1.17;
-  let need = (!transitionActive && parentWidth>700) ? 1.32 : 1.17;
+  const previewNeed = parentWidth>700 ? 1.32 : 1.30;
+  let need = (!transitionActive && parentWidth>700) ? 1.32 : 1.30;
   const desktop=transitionActive && parentWidth>700 && startH>0;
 
   if(desktop){
@@ -133,10 +133,10 @@ function resize(){
     need=THREE.MathUtils.lerp(holdNeed,1.17,progress);
   }
 
-  const previewY = parentWidth>700 ? -0.20 : -0.35;
-  let targetY = (!transitionActive && parentWidth>700) ? previewY : -0.35;
+  const previewY = parentWidth>700 ? -0.20 : -0.12;
+  let targetY = (!transitionActive && parentWidth>700) ? previewY : -0.28;
   if(desktop){
-    targetY = THREE.MathUtils.lerp(previewY,-0.35,ease(u));
+    targetY = THREE.MathUtils.lerp(previewY,-0.28,ease(u));
   }
 
   camera.position.set(0,targetY,Math.max(need/tanHalf,need/(tanHalf*camera.aspect)));
