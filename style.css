@@ -192,7 +192,7 @@ button {
 
 h1 {
   margin: 0;
-  font-size: clamp(4rem, 11vw, 10rem);
+  font-size: clamp(2rem, 4vw, 4rem);
   line-height: .82;
   letter-spacing: -.075em;
   font-weight: 700;
@@ -242,9 +242,17 @@ h1 {
   /* Keep the marquee clipped horizontally for the edge fade.
      The cards use a 45px blurred shadow, so reserve enough vertical room
      inside the clipping box for the full shadow to render. */
-  overflow: hidden;
+  /* overflow: hidden; */
+  overflow-x: auto;
+  overflow-y: visible;
   padding: 12px 0 130px;
   margin-bottom: -42px;
+
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+
+  scrollbar-width: none;
+  -ms-overflow-style: none;
   -webkit-mask-image: linear-gradient(to right,
       transparent 0,
       rgba(0, 0, 0, .28) 2.5%,
@@ -261,6 +269,10 @@ h1 {
       transparent 100%);
 }
 
+.carousel-viewport::-webkit-scrollbar {
+  display: none;
+}
+
 .carousel-track {
   display: flex;
   width: max-content;
@@ -272,6 +284,10 @@ h1 {
   animation-name: marquee;
   animation-timing-function: linear;
   animation-iteration-count: infinite;
+}
+
+.carousel-track.is-dragging {
+  animation-play-state: paused;
 }
 
 .carousel-group {
@@ -834,7 +850,7 @@ h1 {
   }
 
   h1 {
-    font-size: clamp(4rem, 21vw, 6.8rem);
+    font-size: clamp(2.3rem, 12vw, 4rem);
   }
 
   .year-heading {

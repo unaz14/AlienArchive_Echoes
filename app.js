@@ -10,8 +10,8 @@ const RESPONSE_CACHE_KEY = "alienArchiveResponses";
 // Carousel movement speed in pixels per second.
 // Change these independently whenever you want to tune each year.
 const CAROUSEL_SPEED = {
-  2026: 30,
-  2025: 30,
+  2026: 15,
+  2025: 15,
 };
 
 // Add your archive image files here. The page will keep working if a file
@@ -771,6 +771,29 @@ document.addEventListener("keydown", (event) => {
   if (event.key === "Escape" && archiveModal && !archiveModal.hidden) closeArchiveModal();
 });
 
+function setupCarouselSwipePause() {
+  document.querySelectorAll(".carousel-viewport").forEach((viewport) => {
+    const track = viewport.querySelector(".carousel-track");
+
+    viewport.addEventListener("pointerdown", () => {
+      track?.classList.add("is-dragging");
+    });
+
+    viewport.addEventListener("pointerup", () => {
+      track?.classList.remove("is-dragging");
+    });
+
+    viewport.addEventListener("pointercancel", () => {
+      track?.classList.remove("is-dragging");
+    });
+
+    viewport.addEventListener("pointerleave", () => {
+      track?.classList.remove("is-dragging");
+    });
+  });
+}
+
 renderCarousels();
 setupCarouselHoverSpeed();
+setupCarouselSwipePause();
 loadResponses();
