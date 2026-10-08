@@ -7,7 +7,7 @@
   --note: var(--square);
   --line: rgba(23, 21, 18, .25);
   --soft-line: rgba(23, 21, 18, .12);
-  --shadow: 0 18px 45px rgba(46, 34, 18, .14);
+  --shadow: 0 10px 20px rgba(46, 34, 18, .14);
   --side-pad: clamp(24px, 7vw, 104px);
 }
 
@@ -245,7 +245,7 @@ h1 {
   /* overflow: hidden; */
   overflow-x: auto;
   overflow-y: visible;
-  padding: 12px 0 130px;
+  padding: 10px 0 100px;
   margin-bottom: -42px;
 
   -webkit-overflow-scrolling: touch;
