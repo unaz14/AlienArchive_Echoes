@@ -665,7 +665,7 @@ h1 {
   border-top: 1px solid var(--line);
   background: repeating-linear-gradient(to bottom, transparent 0, transparent 31px, rgba(23, 21, 18, .14) 32px);
   font-family: Georgia, "Times New Roman", serif;
-  font-size: 1.05rem;
+  font-size: .9rem;
   line-height: 32px;
 }
 
@@ -893,7 +893,7 @@ h1 {
 
   .recipe-note h2 {
     margin-bottom: 7px;
-    font-size: clamp(1.65rem, 7.5vw, 2.2rem);
+    font-size: clamp(1.2rem, 4vw, 1.2rem);
     line-height: .98;
   }
 
